@@ -1,0 +1,53 @@
+version: '2'
+
+services:
+
+   nginx:
+    image: nginx:alpine
+    ports:
+        - "8080:80"
+    volumes:
+        - ./nginx:/etc/nginx/conf.d
+        - ./logs/nginx:/var/log/nginx
+        - ./www:/var/www/html
+    links:
+        - memcached
+        - wordpress
+    restart: unless-stopped
+
+   wordpress:
+     build: .
+     restart: unless-stopped
+     volumes:
+         - ./www:/var/www/html
+     ports:
+        - "9000:9000"
+     depends_on:
+        - db
+     environment:
+       WORDPRESS_DB_HOST: db:3306
+       WORDPRESS_DB_PASSWORD: wordpress
+
+   memcached:
+    image: memcached:alpine
+    mem_limit: 64m
+
+   db:
+     image: mysql:5.7
+     volumes:
+       - ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+       -  mysql_data:/var/lib/mysql
+       - ./db/conf:/etc/mysql/conf.d
+     restart: unless-stopped
+     command: mysqld  --innodb-buffer-pool-size=20M
+     #user: "1000:50"
+     ports:
+        - "3306:3306"
+     environment:
+       MYSQL_ROOT_PASSWORD: wordpress
+       MYSQL_DATABASE: wordpress
+       MYSQL_USER: wordpress
+       MYSQL_PASSWORD: wordpress
+
+volumes:
+  mysql_data:
