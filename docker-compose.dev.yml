@@ -1,55 +1,99 @@
-version: '2.1'
+version: "3.1"
 
 services:
-#### WEB SERVER CONTAINER
+   #### WEB SERVER CONTAINER
    nginx:
-     image: nginx:alpine
-     ports:
-        - "80:80"
-     volumes:
-        - ./config/nginx:/etc/nginx/conf.d
-        - ./logs/nginx:/var/log/nginx
-        - ./www:/var/www/html
-     command: /bin/sh -c "nginx -g 'daemon off;'"
-#    restart: always
-     depends_on:
-        - wordpress
+      image: nginx:alpine
+      restart: unless-stopped
+      volumes:
+         - ./config/nginx:/etc/nginx/conf.d
+         - ./logs/nginx:/var/log/nginx
+         - ./www:/var/www/html
+      networks:
+         - internal
+         - front
+      depends_on:
+         - wordpress
+      labels:
+         traefik.enable: true
+         traefik.port: 80
+         traefik.frontend.rule: "PathPrefix: /"
+         traefik.protocol: http
+         traefik.docker.network: traefik_front
 
-#### PHP WORDPRESS CONTAINER
+   #### PHP WORDPRESS CONTAINER
    wordpress:
-     build: .
-#     restart: always
-     volumes:
+      build:
+         context: .
+         dockerfile: Dockerfile.dev
+      image: wordpress
+      restart: unless-stopped
+      volumes:
          - ./www:/var/www/html
          - ./config/php/xdebug-development.ini:/usr/local/etc/php/conf.d/xdebug-development.ini
          - ./config/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
          - ./config/php/php-fpm.conf:/usr/local/etc/php-fpm.conf
-     ports:
-        - "9010:9010"
-     depends_on:
-        - db
-     environment:
-       WORDPRESS_DB_HOST: db
-       WORDPRESS_DB_USER: wordpress
-       WORDPRESS_DB_PASSWORD: wordpress
-#### MEMCAHED CONTAINER
-   memcached:
-    image: memcached:alpine
-    mem_limit: 64m
+      ports:
+         - 9001:9001
+      networks:
+         - internal
+      depends_on:
+         - db
+         - memcached
+      environment:
+         WORDPRESS_DB_HOST: db
+         WORDPRESS_DB_USER: wordpress
+         WORDPRESS_DB_PASSWORD: wordpress
 
-#### DATABASE CONTAINER
+   #### MEMCAHED CONTAINER
+   memcached:
+      image: memcached:alpine
+      restart: unless-stopped
+      environment:
+         - MEMCACHED_CACHE_SIZE=64
+      networks:
+         - internal
+
+   #### DATABASE CONTAINER
    db:
-     image: mysql:5.7
-     volumes:
-       - ./db/data:/var/lib/mysql
-       - ./config/mysql:/etc/mysql/conf.d
-#     restart: always
-#     command: mysqld  --innodb-buffer-pool-size=20M
-#    user: "1000:50"
-     ports:
-        - "3306:3306"
-     environment:
-       MYSQL_ROOT_PASSWORD: wordpress
-       MYSQL_DATABASE: wordpress
-       MYSQL_USER: wordpress
-       MYSQL_PASSWORD: wordpress
+      image: mysql:5.7
+      restart: unless-stopped
+      volumes:
+         -  ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+         - ./db/data:/var/lib/mysql
+         - ./config/mysql:/etc/mysql/conf.d
+      command: mysqld  --innodb-buffer-pool-size=20M
+      #    user: "1000:50"
+      networks:
+         - internal
+      environment:
+         MYSQL_ROOT_PASSWORD: wordpress
+         MYSQL_DATABASE: wordpress
+         MYSQL_USER: wordpress
+         MYSQL_PASSWORD: wordpress
+
+   traefik:
+      image: traefik:alpine
+      restart: unless-stopped
+      ports:
+         - 80:80
+         - 8080:8080
+      networks:
+         - front
+      labels:
+         traefik.enable: true
+         traefik.docker.network: traefik_front
+         traefik.port: 8080
+      volumes:
+         - /var/run/docker.sock:/var/run/docker.sock
+         - ./config/traefik/traefik.dev.toml:/traefik.toml
+#      container_name: traefik
+
+volumes:
+   mysql_data:
+
+networks:
+   internal:
+   front:
+#      external:
+#         name: traefik_front

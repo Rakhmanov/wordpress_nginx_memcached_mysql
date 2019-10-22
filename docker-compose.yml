@@ -1,53 +1,91 @@
-version: '2'
+version: "3.1"
 
 services:
-
-   nginx:
+  nginx:
     image: nginx:alpine
-    ports:
-        - "8080:80"
     volumes:
-        - ./nginx:/etc/nginx/conf.d
-        - ./logs/nginx:/var/log/nginx
-        - ./www:/var/www/html
-    links:
-        - memcached
-        - wordpress
+      - ./nginx:/etc/nginx/conf.d
+      - ./logs/nginx:/var/log/nginx
+      - ./www:/var/www/html
+    depends_on:
+      - wordpress
+    networks:
+      - internal
+      - front
     restart: unless-stopped
+    labels:
+      traefik.enable: true
+      traefik.port: 80
+      traefik.protocol: http
+      traefik.frontend.rule: Host:localhost
+      traefik.frontend.priority: 1
+      traefik.docker.network: traefik_front
+#      traefik.docker.certificatesresolvers.default.cme.storage: acme.json
 
-   wordpress:
-     build: .
-     restart: unless-stopped
-     volumes:
-         - ./www:/var/www/html
-     ports:
-        - "9000:9000"
-     depends_on:
-        - db
-     environment:
-       WORDPRESS_DB_HOST: db:3306
-       WORDPRESS_DB_PASSWORD: wordpress
+  wordpress:
+    build:
+      context: .
+    restart: unless-stopped
+    volumes:
+      - ./www:/var/www/html
+      - ./config/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
+      - ./config/php/php-fpm.conf:/usr/local/etc/php-fpm.conf
+    networks:
+      - internal
+    depends_on:
+      - db
+    environment:
+      WORDPRESS_DB_HOST: db
+      WORDPRESS_DB_USER: wordpress      
+      WORDPRESS_DB_PASSWORD: wordpress
 
-   memcached:
+  memcached:
     image: memcached:alpine
-    mem_limit: 64m
+    environment:
+      - "MEMCACHED_CACHE_SIZE=64"
+    restart: unless-stopped
+    networks:
+      - internal
 
-   db:
-     image: mysql:5.7
-     volumes:
-       - ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
-       -  mysql_data:/var/lib/mysql
-       - ./db/conf:/etc/mysql/conf.d
-     restart: unless-stopped
-     command: mysqld  --innodb-buffer-pool-size=20M
-     #user: "1000:50"
-     ports:
-        - "3306:3306"
-     environment:
-       MYSQL_ROOT_PASSWORD: wordpress
-       MYSQL_DATABASE: wordpress
-       MYSQL_USER: wordpress
-       MYSQL_PASSWORD: wordpress
+  db:
+    image: mysql:5.7
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ./db/conf:/etc/mysql/conf.d
+    restart: unless-stopped
+    command: mysqld --innodb-buffer-pool-size=20M
+    #user: "1000:50"
+    networks:
+      - internal
+    environment:
+      MYSQL_ROOT_PASSWORD: wordpress
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+
+
+  traefik:
+    image: traefik:alpine
+    restart: unless-stopped
+    ports:
+      - 80:80
+      - 443:443
+    networks:
+      - front
+    labels:
+      traefik.docker.network: traefik_front
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./config/traefik/traefik.toml:/traefik.toml
+      - acme:/acme
 
 volumes:
   mysql_data:
+  acme:
+
+networks:
+  internal: 
+  front:
+    external:
+      name: traefik_front
