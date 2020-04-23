@@ -6,20 +6,20 @@ services:
       image: nginx:alpine
       restart: unless-stopped
       volumes:
-         - ./config/nginx:/etc/nginx/conf.d
-         - ./logs/nginx:/var/log/nginx
          - ./www:/var/www/html
+         - ./logs/nginx:/var/log/nginx
+         - ./config/nginx:/etc/nginx/conf.d
       networks:
          - internal
          - front
       depends_on:
          - wordpress
       labels:
-         traefik.enable: true
          traefik.port: 80
-         traefik.frontend.rule: "PathPrefix: /"
+         traefik.enable: true
          traefik.protocol: http
          traefik.docker.network: traefik_front
+         traefik.frontend.rule: "Host:localhost"
 
    #### PHP WORDPRESS CONTAINER
    wordpress:
@@ -30,9 +30,9 @@ services:
       restart: unless-stopped
       volumes:
          - ./www:/var/www/html
-         - ./config/php/xdebug-development.ini:/usr/local/etc/php/conf.d/xdebug-development.ini
-         - ./config/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
          - ./config/php/php-fpm.conf:/usr/local/etc/php-fpm.conf
+         - ./config/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
+         - ./config/php/xdebug-development.ini:/usr/local/etc/php/conf.d/xdebug-development.ini
       ports:
          - 9001:9001
       networks:
@@ -59,18 +59,20 @@ services:
       image: mysql:5.7
       restart: unless-stopped
       volumes:
-         -  ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
          - ./db/data:/var/lib/mysql
          - ./config/mysql:/etc/mysql/conf.d
+         -  ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       command: mysqld  --innodb-buffer-pool-size=20M
       #    user: "1000:50"
+      ports:
+         - 3306:3306
       networks:
          - internal
       environment:
-         MYSQL_ROOT_PASSWORD: wordpress
-         MYSQL_DATABASE: wordpress
          MYSQL_USER: wordpress
+         MYSQL_DATABASE: wordpress
          MYSQL_PASSWORD: wordpress
+         MYSQL_ROOT_PASSWORD: wordpress
 
    traefik:
       image: traefik:alpine
@@ -81,13 +83,12 @@ services:
       networks:
          - front
       labels:
+         traefik.port: 8080
          traefik.enable: true
          traefik.docker.network: traefik_front
-         traefik.port: 8080
       volumes:
          - /var/run/docker.sock:/var/run/docker.sock
          - ./config/traefik/traefik.dev.toml:/traefik.toml
-#      container_name: traefik
 
 volumes:
    mysql_data:
@@ -95,5 +96,5 @@ volumes:
 networks:
    internal:
    front:
-#      external:
-#         name: traefik_front
+   #   external:
+   #      name: traefik_front

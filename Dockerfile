@@ -1,4 +1,4 @@
-FROM wordpress:php7.3-fpm-alpine
+FROM wordpress:php7.4-fpm-alpine
 
 RUN apk update\
   && apk upgrade \
@@ -13,7 +13,7 @@ RUN apk update\
     cyrus-sasl-dev \
   && pecl config-set php_ini  /usr/local/etc/php/php.ini \
   && pecl install -f memcached\
-#  && echo extension=memcached.so >> /usr/local/etc/php/conf.d/docker-php-ext-memcached.ini \
+  && echo extension=memcached.so >> /usr/local/etc/php/conf.d/docker-php-ext-memcached.ini \
   && rm -rf /tmp/pear \
   && apk del php7-dev
 

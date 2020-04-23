@@ -4,9 +4,9 @@ services:
   nginx:
     image: nginx:alpine
     volumes:
+      - ./www:/var/www/html
       - ./nginx:/etc/nginx/conf.d
       - ./logs/nginx:/var/log/nginx
-      - ./www:/var/www/html
     depends_on:
       - wordpress
     networks:
@@ -14,11 +14,11 @@ services:
       - front
     restart: unless-stopped
     labels:
-      traefik.enable: true
       traefik.port: 80
+      traefik.enable: true
       traefik.protocol: http
-      traefik.frontend.rule: Host:localhost
       traefik.frontend.priority: 1
+      traefik.frontend.rule: Host:localhost
       traefik.docker.network: traefik_front
 #      traefik.docker.certificatesresolvers.default.cme.storage: acme.json
 
@@ -28,8 +28,8 @@ services:
     restart: unless-stopped
     volumes:
       - ./www:/var/www/html
-      - ./config/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
       - ./config/php/php-fpm.conf:/usr/local/etc/php-fpm.conf
+      - ./config/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
     networks:
       - internal
     depends_on:
@@ -51,18 +51,18 @@ services:
     image: mysql:5.7
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       - ./db/conf:/etc/mysql/conf.d
+      - ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     restart: unless-stopped
     command: mysqld --innodb-buffer-pool-size=20M
     #user: "1000:50"
     networks:
       - internal
     environment:
-      MYSQL_ROOT_PASSWORD: wordpress
-      MYSQL_DATABASE: wordpress
       MYSQL_USER: wordpress
       MYSQL_PASSWORD: wordpress
+      MYSQL_DATABASE: wordpress
+      MYSQL_ROOT_PASSWORD: wordpress
 
 
   traefik:
@@ -76,9 +76,9 @@ services:
     labels:
       traefik.docker.network: traefik_front
     volumes:
+      - acme:/acme
       - /var/run/docker.sock:/var/run/docker.sock
       - ./config/traefik/traefik.toml:/traefik.toml
-      - acme:/acme
 
 volumes:
   mysql_data:
