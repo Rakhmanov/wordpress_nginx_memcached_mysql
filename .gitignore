@@ -1,3 +1,4 @@
 www/wp-content/uploads
 logs/nginx
 db/data
+config/traefik/traefik-migration-tool.exe
