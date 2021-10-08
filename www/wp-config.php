@@ -2,6 +2,7 @@
 /** Enable W3 Total Cache */
 define('WP_CACHE', true); // Added by W3 Total Cache
 define('WP_DEBUG', false);
+define('FS_METHOD', 'direct');
 
 define('WP_SITEURL', 'http://' . $_SERVER['HTTP_HOST']);
 define('WP_HOME', 'http://' . $_SERVER['HTTP_HOST']);
@@ -12,7 +13,6 @@ define('DB_HOST', 'db');
 define('DB_CHARSET', 'utf8');
 define('DB_COLLATE', '');
 
-
 define('AUTH_KEY',         '1C-U6SCq{z&&/cJ,+n>+F~$Uo_+E{zl-aT[<S?urH{si+ &P, 0-@Z!<S%C<d6WT');
 define('SECURE_AUTH_KEY',  'c<#y0o*S6}trg9|t3&:S^l-ePzPmp]z-]l3Y$y4ANgi|^-3D>RqP6E>K-wzZf*CR');
 define('LOGGED_IN_KEY',    '3qQ}W ]QpJ{3xnEVyzt}gco7`5]uk?JJtm,),^-bh@M_Le;4LHU247~{AOdJ*aC|');
@@ -21,7 +21,6 @@ define('AUTH_SALT',        ';P_mVEirC5]Q[F+0mijzXu+-ikif0H!JZETqtg[H>8Y U1T.G.!5
 define('SECURE_AUTH_SALT', '=;(GHwi}S0zlF:,YYIn?*)+}]79wIJ582hzO[w`;Gh-.HU(VwWvrfR?D+=aD4KVf');
 define('LOGGED_IN_SALT',   'AS% ] UY~D5(-U}yB&2g)c$oU )H[-cL7Zl^*f$/4vsY<K.c;yjlD0Dj6yc!,C)]');
 define('NONCE_SALT',       'mwL[rlk|0]oEZ/&~/,A>p=VUeU9W&|ay Xc:ye!Rsin|.7w$xXh/f6`O[OKfM/Vr');
-
 
 $table_prefix  = 'wp_';
 

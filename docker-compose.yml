@@ -2,11 +2,14 @@ version: "3.1"
 
 services:
   nginx:
+    build:
+      context: .
+      dockerfile: Dockerfile.nginx
     image: nginx:alpine
     volumes:
-      - ./www:/var/www/html
-      - ./config/nginx:/etc/nginx/conf.d
+      - ./nginx:/etc/nginx/conf.d
       - ./logs/nginx:/var/log/nginx
+      - ./www:/var/www/html
     depends_on:
       - wordpress
     networks:
@@ -14,12 +17,15 @@ services:
       - front
     restart: unless-stopped
     labels:
-      traefik.port: 80
       traefik.enable: true
+      traefik.port: 80
       traefik.protocol: http
-      traefik.domain: "example.domain.com"
-      traefik.frontend.rule: "Host:example.domain.com"
+      traefik.frontend.rule: Host:website.com, www.website.com
+      traefik.frontend.priority: 1
       traefik.docker.network: traefik_front
+      traefik.frontend.redirect.regex: "^https?://www.website.com/(.*)"
+      traefik.frontend.redirect.replacement: "https://website.com/$$1"
+      traefik.frontend.redirect.permanent: true
 
   wordpress:
     build:
@@ -27,8 +33,8 @@ services:
     restart: unless-stopped
     volumes:
       - ./www:/var/www/html
-      - ./config/php/php-fpm.conf:/usr/local/etc/php-fpm.conf
       - ./config/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
+      - ./config/php/php-fpm.conf:/usr/local/etc/php-fpm.conf
     networks:
       - internal
     depends_on:
@@ -50,33 +56,37 @@ services:
     image: mysql:5.7
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./db/conf:/etc/mysql/conf.d
       - ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      - ./db/conf:/etc/mysql/conf.d
     restart: unless-stopped
     command: mysqld --innodb-buffer-pool-size=20M
+    #user: "1000:50"
     networks:
       - internal
     environment:
+      MYSQL_ROOT_PASSWORD: wordpress
+      MYSQL_DATABASE: wordpress
       MYSQL_USER: wordpress
       MYSQL_PASSWORD: wordpress
-      MYSQL_DATABASE: wordpress
-      MYSQL_ROOT_PASSWORD: wordpress
-
 
   traefik:
     image: traefik:alpine
     restart: unless-stopped
     ports:
-      - 80:80  
+      - 80:80
+      - 8080:8080
       - 443:443
     networks:
       - front
     labels:
+      traefik.enable: false
       traefik.docker.network: traefik_front
+      traefik.port: 8080
     volumes:
-      - acme:/acme
       - /var/run/docker.sock:/var/run/docker.sock
       - ./config/traefik/traefik.toml:/traefik.toml
+      - acme:/acme
+    container_name: traefik
 
 volumes:
   mysql_data:

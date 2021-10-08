@@ -1,0 +1,24 @@
+global: {}
+entryPoints:
+  http:
+    address: :80
+  https:
+    address: :443
+providers:
+  providersThrottleDuration: 2s
+  docker:
+    watch: true
+    endpoint: unix:///var/run/docker.sock
+    swarmModeRefreshSeconds: 15s
+api:
+  insecure: true
+  dashboard: true
+log:
+  level: ERROR
+certificatesResolvers:
+  default:
+    acme:
+      email: email@gmail.com
+      storage: /acme/acme.json
+      httpChallenge:
+        entryPoint: http

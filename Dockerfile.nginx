@@ -1,0 +1,11 @@
+FROM nginx:alpine
+
+RUN apk upgrade \
+    && apk update \
+    && apk add openssl libressl acme.sh
+
+#COPY config/nginx/default.conf /etc/nginx/conf.d/default.conf
+
+#RUN acme.sh --issue -d website.com --nginx
+
+#RUN 0 0 * * * "/usr/bin"/acme.sh --cron --home "/usr/bin/" > /dev/null

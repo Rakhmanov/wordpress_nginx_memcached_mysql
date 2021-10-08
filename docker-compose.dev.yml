@@ -3,38 +3,39 @@ version: "3.1"
 services:
    #### WEB SERVER CONTAINER
    nginx:
-      image: nginx:alpine
+      build: 
+         context: .
+         dockerfile: Dockerfile.nginx
+      image: nginx
       restart: unless-stopped
       volumes:
-         - ./www:/var/www/html
-         - ./logs/nginx:/var/log/nginx
          - ./config/nginx:/etc/nginx/conf.d
-      networks:
-         - internal
-         - front
+         - ./logs/nginx:/var/log/nginx
+         - ./www:/var/www/html
+      #command: /bin/sh -c "nginx  && acme.sh --issue -d yammo.io --nginx"
       depends_on:
          - wordpress
       labels:
          traefik.port: 80
          traefik.enable: true
-         traefik.protocol: http
          traefik.docker.network: traefik_front
-         traefik.frontend.rule: "Host:localhost"
+         traefik.frontend.rule: "Host:host.docker.internal"
+      networks:
+         - internal
+         - front
 
    #### PHP WORDPRESS CONTAINER
    wordpress:
-      build:
+      build: 
          context: .
          dockerfile: Dockerfile.dev
-      image: wordpress
+      image: wordpress         
       restart: unless-stopped
       volumes:
          - ./www:/var/www/html
-         - ./config/php/php-fpm.conf:/usr/local/etc/php-fpm.conf
-         - ./config/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
          - ./config/php/xdebug-development.ini:/usr/local/etc/php/conf.d/xdebug-development.ini
-      ports:
-         - 9001:9001
+         - ./config/php/www.conf:/usr/local/etc/php-fpm.d/www.conf
+         - ./config/php/php-fpm.conf:/usr/local/etc/php-fpm.conf
       networks:
          - internal
       depends_on:
@@ -61,18 +62,15 @@ services:
       volumes:
          - ./db/data:/var/lib/mysql
          - ./config/mysql:/etc/mysql/conf.d
-         -  ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       command: mysqld  --innodb-buffer-pool-size=20M
       #    user: "1000:50"
-      ports:
-         - 3306:3306
       networks:
          - internal
       environment:
-         MYSQL_USER: wordpress
-         MYSQL_DATABASE: wordpress
-         MYSQL_PASSWORD: wordpress
          MYSQL_ROOT_PASSWORD: wordpress
+         MYSQL_DATABASE: wordpress
+         MYSQL_USER: wordpress
+         MYSQL_PASSWORD: wordpress
 
    traefik:
       image: traefik:alpine
@@ -80,21 +78,24 @@ services:
       ports:
          - 80:80
          - 8080:8080
+         - 443:443
       networks:
          - front
       labels:
-         traefik.port: 8080
-         traefik.enable: true
          traefik.docker.network: traefik_front
+         traefik.port: 8080
       volumes:
          - /var/run/docker.sock:/var/run/docker.sock
          - ./config/traefik/traefik.dev.toml:/traefik.toml
+         - acme:/acme
+      container_name: traefik
 
 volumes:
-   mysql_data:
+  mysql_data:
+  acme:
 
 networks:
    internal:
    front:
-   #   external:
-   #      name: traefik_front
+      external:
+         name: traefik_front
