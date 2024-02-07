@@ -56,11 +56,9 @@ services:
     image: mysql:5.7
     volumes:
       - mysql_data:/var/lib/mysql
-      - ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
       - ./db/conf:/etc/mysql/conf.d
     restart: unless-stopped
     command: mysqld --innodb-buffer-pool-size=20M
-    #user: "1000:50"
     networks:
       - internal
     environment:
@@ -95,5 +93,5 @@ volumes:
 networks:
   internal: 
   front:
-    external:
-      name: traefik_front
+    name: traefik_front
+    external: true

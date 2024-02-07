@@ -1,4 +1,4 @@
-FROM wordpress:php7.4-fpm-alpine
+FROM wordpress:php8.3-fpm-alpine
 
 RUN apk update\
   && apk upgrade \
@@ -6,17 +6,12 @@ RUN apk update\
     libmemcached-libs \
     libmemcached-dev \
     build-base \
+    linux-headers \
     zlib-dev \
-    php7-dev \
     git \
     autoconf \
     cyrus-sasl-dev \
-  && pecl config-set php_ini  /usr/local/etc/php/php.ini \
+  && pecl config-set php_ini /usr/local/etc/php/php.ini \
   && pecl install -f memcached\
   && echo extension=memcached.so >> /usr/local/etc/php/conf.d/docker-php-ext-memcached.ini \
-  && rm -rf /tmp/pear \
-  && apk del php7-dev
-
-RUN addgroup -S rangeruser \
-    && adduser -D -S -G rangeruser rangeruser \
-    && addgroup www-data rangeruser
+  && rm -rf /tmp/pear 

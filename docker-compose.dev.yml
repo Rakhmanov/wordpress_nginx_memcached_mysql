@@ -12,19 +12,18 @@ services:
          - ./config/nginx:/etc/nginx/conf.d
          - ./logs/nginx:/var/log/nginx
          - ./www:/var/www/html
-      #command: /bin/sh -c "nginx  && acme.sh --issue -d yammo.io --nginx"
       depends_on:
          - wordpress
       labels:
          traefik.port: 80
          traefik.enable: true
          traefik.docker.network: traefik_front
-         traefik.frontend.rule: "Host:host.docker.internal"
+         traefik.frontend.rule: "Host:localhost"
       networks:
          - internal
          - front
 
-   #### PHP WORDPRESS CONTAINER
+   #### PHP BACKEND CONTAINER
    wordpress:
       build: 
          context: .
@@ -46,7 +45,7 @@ services:
          WORDPRESS_DB_USER: wordpress
          WORDPRESS_DB_PASSWORD: wordpress
 
-   #### MEMCAHED CONTAINER
+   #### CACHE CONTAINER
    memcached:
       image: memcached:alpine
       restart: unless-stopped
@@ -60,10 +59,12 @@ services:
       image: mysql:5.7
       restart: unless-stopped
       volumes:
-         - ./db/data:/var/lib/mysql
+         - mysql_data:/var/lib/mysql
          - ./config/mysql:/etc/mysql/conf.d
-      command: mysqld  --innodb-buffer-pool-size=20M
-      #    user: "1000:50"
+         - ./db/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      command: mysqld --innodb-buffer-pool-size=20M
+      ports:
+         - 3306:3306
       networks:
          - internal
       environment:
@@ -72,6 +73,7 @@ services:
          MYSQL_USER: wordpress
          MYSQL_PASSWORD: wordpress
 
+   #### PROXY CONTAINER
    traefik:
       image: traefik:alpine
       restart: unless-stopped
@@ -87,15 +89,13 @@ services:
       volumes:
          - /var/run/docker.sock:/var/run/docker.sock
          - ./config/traefik/traefik.dev.toml:/traefik.toml
-         - acme:/acme
       container_name: traefik
 
 volumes:
   mysql_data:
-  acme:
 
 networks:
    internal:
    front:
-      external:
-         name: traefik_front
+      name: traefik_front
+      external: true
